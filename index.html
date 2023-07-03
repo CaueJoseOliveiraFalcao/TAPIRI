@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Conversão de Excel para JSON</title>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+  </head>
+  <body>
+    <input type="file" id="file-input" />
+    <div id="output"></div>
+
+    <script>
+      document.getElementById('file-input').addEventListener('change', handleFileSelect);
+
+      function downloadArrayAsText(array, filename) {
+        var textContent = array.join('\n');
+        var element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(textContent));
+        element.setAttribute('download', filename);
+        element.style.display = 'none';
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+    }
+      function handleFileSelect(event) {
+        var file = event.target.files[0];
+        var reader = new FileReader();
+        var nameRepeted = []
+        
+        
+        reader.onload = function (e) {
+          var data = new Uint8Array(e.target.result);
+          var workbook = XLSX.read(data, { type: 'array' });
+
+          var worksheets = {};
+          workbook.SheetNames.forEach(function (sheetName) {
+            var worksheet = workbook.Sheets[sheetName];
+            worksheets[sheetName] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          });
+
+          displayOutput(worksheets);
+          for (var sheetName in worksheets) {
+  console.log('----' + sheetName + '-----');
+  var sheetData = worksheets[sheetName];
+  let nameCount = {};
+  let previousNumber = null;
+
+  for (var i = 0; i < sheetData.length; i++) {
+    var number = sheetData[i][6];
+    var title = sheetData[i][5];
+
+    if (typeof title === 'string' && title.includes('CAMAROTE')) {
+      if (previousNumber !== null && number === previousNumber) {
+        const info =
+          'NOME ' +
+          number +
+          '////DATA: ' +
+          sheetData[i][8] +
+          '///LOCAL : '+
+          sheetData[i][9]
+        nameRepeted.push(info);
+        console.log(info);
+      }
+      previousNumber = number;
+    }
+  }
+  downloadArrayAsText(nameRepeted, 'CAMAROTE 29--01')
+}
+        };
+        console.log(nameRepeted)
+        reader.readAsArrayBuffer(file);
+      }
+
+      function displayOutput(worksheets) {
+        var outputDiv = document.getElementById('output');
+        outputDiv.innerHTML = '';
+
+        for (var sheetName in worksheets) {
+          var sheetData = worksheets[sheetName];
+
+          var table = document.createElement('table');
+          var headerRow = document.createElement('tr');
+          for (var headerCell of sheetData[0]) {
+            var th = document.createElement('th');
+            th.textContent = headerCell;
+            headerRow.appendChild(th);
+          }
+          table.appendChild(headerRow);
+
+          for (var i = 1; i < sheetData.length; i++) {
+            var rowData = sheetData[i];
+            var row = document.createElement('tr');
+            for (var cellData of rowData) {
+              var td = document.createElement('td');
+              td.textContent = cellData;
+              row.appendChild(td);
+            }
+            table.appendChild(row);
+          }
+
+          outputDiv.appendChild(document.createElement('h2')).textContent = sheetName;
+          outputDiv.appendChild(table);
+        }
+      }
+    </script>
+  </body>
+</html>
